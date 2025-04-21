@@ -2,29 +2,50 @@
 
 IFS=$'\n'
 
-BD_PATH=$1
-questions=(`csvtool col 1 $BD_PATH`)
-answers=(`csvtool col 2 $BD_PATH`)
-quantity=$((`csvtool height $BD_PATH`-1))
+FILE_NAME=$1
+#создание массивов
+questions=()
+answers=()
+user_answers=()
 
-for question_number in ${!questions[@]}
-do
-	if [ $question_number -eq 0 ]; then echo "Всего будет $quantity вопросов";
-	else
-		echo $question_number ${questions[$question_number]}
-		read user_answer
-		user_answers+=($user_answer)
-	fi
-	clear
+# Чтение CSV файла
+while IFS=',' read -r question answer; do
+  # Здесь IFS временно меняется на , только для команды read.
+    questions+=("$question")
+    answers+=("$answer")
+done < <(tail -n +2 "$FILE_NAME")  # Пропускаем заголовок (первую строку)
+# < <(...) — это Process Substitution, передаёт вывод команды tail как входные данные для цикла.
+
+quantity=${#questions[@]}
+# ${#questions[@]} - вычисляет количество элементов в массиве questions
+# [@] — обращение ко всем элементам массива
+# # перед массивом — подсчёт количества элементов
+
+clear
+
+# Задаём вопросы
+for ((i=0; i<quantity; i++)); do
+    current_question=$((i + 1))
+    echo "$current_question из $quantity:"
+    echo "${questions[$i]}"
+    read -r -p "Ваш ответ: " user_answer
+    if [[ -z "$user_answer" ]]; then
+        user_answers+=("Нет ответа")
+    else
+        user_answers+=("$user_answer")
+    fi
+    clear
 done
 
-for question_number in ${!questions[@]}
-do
-	if [ $question_number -eq 0 ]; then echo "Результаты"
-	else
-		echo $question_number ${questions[$question_number]}
-		echo "Ваш ответ: "${user_answers[$question_number]}
-		echo "Правильный ответ: " ${answers[$question_number]}
-	fi
-	echo "---------"
+# Выводим результаты
+echo "Результаты:"
+echo "------------------------"
+
+for ((i=0; i<quantity; i++)); do
+    current_question=$((i + 1))
+    echo "$current_question из $quantity:"
+    echo "${questions[$i]}"
+    echo "Ваш ответ: ${user_answers[$i]}"
+    echo "Правильный ответ: ${answers[$i]}"
+    echo "------------------------"
 done
